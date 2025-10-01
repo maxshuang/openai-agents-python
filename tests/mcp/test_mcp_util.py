@@ -117,17 +117,18 @@ class CrashingFakeMCPServer(FakeMCPServer):
 async def test_mcp_invocation_crash_causes_error(caplog: pytest.LogCaptureFixture):
     caplog.set_level(logging.DEBUG)
 
-    """Test that bad JSON input errors are logged and re-raised."""
+    """Test that MCP tool errors are returned as error strings, not raised as exceptions."""
     server = CrashingFakeMCPServer()
     server.add_tool("test_tool_1", {})
 
     ctx = RunContextWrapper(context=None)
     tool = MCPTool(name="test_tool_1", inputSchema={})
 
-    with pytest.raises(AgentsException):
-        await MCPUtil.invoke_mcp_tool(server, tool, ctx, "")
-
-    assert "Error invoking MCP tool test_tool_1" in caplog.text
+    # Should return error string instead of raising exception
+    result = await MCPUtil.invoke_mcp_tool(server, tool, ctx, "")
+    
+    assert result == "Error: Crash!"
+    assert "MCP tool test_tool_1 error (returning to agent): Crash!" in caplog.text
 
 
 @pytest.mark.asyncio
